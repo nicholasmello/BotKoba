@@ -11,6 +11,7 @@ import (
 )
 
 var lastjump int64
+var lastkickoff int64
 
 func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerState {
 	PlayerInput := &RLBot.ControllerState{}
@@ -69,6 +70,15 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 
 	// Go forward
 	PlayerInput.Throttle = 1.0
+
+	// Boost on kickoff
+	if !gameState.GameTick.GameInfo.IsRoundActive {
+		lastkickoff = time.Now().UnixMilli()
+	} else if time.Now().UnixMilli() < lastkickoff + 2000 {
+		PlayerInput.Boost = true
+	}
+
+	fmt.Println(time.Now().UnixMilli() - lastkickoff)
 
 	return PlayerInput
 }
