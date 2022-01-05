@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	vector "github.com/xonmello/BotKoba/vector3"
 	rotator "github.com/xonmello/BotKoba/rotator"
 	math "github.com/chewxy/math32"
 	RLBot "github.com/Trey2k/RLBotGo"
 )
+
+var lastjump int64
 
 func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerState {
 	PlayerInput := &RLBot.ControllerState{}
@@ -18,7 +21,6 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 	koba_rot := rotator.New(koba.Physics.Rotation.Pitch, koba.Physics.Rotation.Yaw, koba.Physics.Rotation.Roll)
 	
 	// Get opponent information into a useful format
-	// Opponent information unused right now
 	// var opponent RLBot.PlayerInfo
 	// if rlBot.PlayerIndex == 0 {
 	// 	opponent := gameState.GameTick.Players[1]
@@ -30,24 +32,59 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 	
 	// Get ball information into a useful format
 	ball := gameState.GameTick.Ball
-	ballLocation := vector.New(ball.Physics.Location.X, ball.Physics.Location.Y, ball.Physics.Location.Z)
+	ball_pos := vector.New(ball.Physics.Location.X, ball.Physics.Location.Y, ball.Physics.Location.Z)
+
+	// Flips coordinates when on orange team
+	if koba.Team == 1 {
+		koba_pos = koba_pos.MultiplyScalar(-1)
+		koba_rot = koba_rot.RotateYaw(math.Pi)
+		ball_pos = ball_pos.MultiplyScalar(-1)
+		// opponent_pos = opponent_pos.MultiplyScalar(-1)
+		// opponent_rot = opponent_rot.RotateYaw(math.Pi)
+	}
 
 	// Put wheels down if in the air
 	if !koba.HasWheelContact {
 		PlayerInput.Roll = -1.0*koba_rot.Roll/math.Pi
 	}
 
+	steer := steerToward(koba_pos, koba_rot, ball_pos)
+
+	// Drift if close to the ball and not very aligned
+	if koba_pos.Distance(ball_pos) < 500 && math.Abs(steer) > 0.3 {
+		PlayerInput.Handbrake = true
+	} 
+
+	if koba_pos.Y > ball_pos.Y + 400 {
+		steer = -1 * (math.Pi / 2 + koba_rot.Yaw)
+		PlayerInput.Boost = true
+	}
+
+	if koba_pos.Distance(ball_pos) < 400 && koba_pos.Y < ball_pos.Y {
+		PlayerInput = flipToward(koba_pos, koba.Jumped, koba_rot, ball_pos, PlayerInput)
+	}
+
+	// Put final calculation into player input
+	PlayerInput.Steer = steer
+
+	// Go forward
+	PlayerInput.Throttle = 1.0
+
+	return PlayerInput
+}
+
+func steerToward(self_pos *vector.Vector3, self_rot *rotator.Rotator, target *vector.Vector3) float32 {
 	// Center the car in the coordinate system
-	local := ballLocation.Subtract(koba_pos)
-	toBallAngle := math.Atan2(local.Y,local.X)
+	local := target.Subtract(self_pos)
+	toTargetAngle := math.Atan2(local.Y,local.X)
 	
 	// Steer toward the ball depending on our Yaw (direction we are facing)
-	steer := toBallAngle - koba_rot.Yaw
+	steer := toTargetAngle - self_rot.Yaw
 	if steer < -math.Pi {
 		steer += math.Pi * 2.0;
 	} else if steer >= math.Pi {
 		steer -= math.Pi * 2.0;
-	}
+	}	
 
 	// If angle is greater than 1 radian, limit to full turn
 	if (steer > 1) {
@@ -55,17 +92,37 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 	} else if (steer < -1) {
 		steer = -1
 	}
+	return steer
+}
 
-	// Put final calculation into player input
-	PlayerInput.Steer = steer
+func flipToward(self_pos *vector.Vector3, jumped bool, self_rot *rotator.Rotator, target *vector.Vector3, PlayerInput *RLBot.ControllerState) *RLBot.ControllerState {
+	local := target.Subtract(self_pos)
+	localAngle := rotator.New(0,math.Atan2(local.Y,local.X),0).RotateYaw(-self_rot.Yaw).Yaw
 
-	// Drift if close to the ball and not very aligned
-	if koba_pos.Distance(ballLocation) < 300 && math.Abs(steer) > 0.3 {
-		PlayerInput.Handbrake = true
-	} 
+	if !jumped {
+		PlayerInput.Jump = true
+		lastjump = time.Now().UnixMilli()
+	}
 
-	// Go forward
-	PlayerInput.Throttle = 1.0
+	if jumped && time.Now().UnixMilli() > lastjump + 70 {
+		PlayerInput.Jump = true
+		if math.Abs(localAngle) <= 0.3 {
+			PlayerInput.Pitch = -1
+			PlayerInput.Yaw = 0
+		} else if localAngle <= (math.Pi / 2) && 1.14 <= localAngle {
+			PlayerInput.Pitch = 0
+			PlayerInput.Yaw = 1
+		} else if localAngle <= -1.14 && -(math.Pi / 2) <= localAngle {
+			PlayerInput.Pitch = 0
+			PlayerInput.Yaw = -1
+		} else if localAngle <= 1.14 && 0.3 <= localAngle {
+			PlayerInput.Pitch = -1
+			PlayerInput.Yaw = 1
+		} else if localAngle <= -0.3 && -1.14 <= localAngle {
+			PlayerInput.Pitch = -1
+			PlayerInput.Yaw = -1
+		}
+	}
 
 	return PlayerInput
 }

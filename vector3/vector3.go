@@ -40,6 +40,10 @@ func (v *Vector3) DivideScalar(num float32) *Vector3 {
 	return New(v.X / num, v.Y / num, v.Z / num)
 }
 
+func (v *Vector3) MultiplyScalar(num float32) *Vector3 {
+	return New(v.X * num, v.Y * num, v.Z * num)
+}
+
 func (v *Vector3) Magnitude() float32 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
 }
