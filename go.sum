@@ -1,10 +1,10 @@
-github.com/Trey2k/RLBotGo v0.0.0-20210719171657-72bec101af44 h1:6ptPvI0C4lMPIg01Ly5ix52kMBu0CXQiFfWM0KimS4s=
-github.com/Trey2k/RLBotGo v0.0.0-20210719171657-72bec101af44/go.mod h1:gLV280pEfvXl5d8pJ13xGXToM8+IQPBElrhRMiu91KI=
 github.com/Trey2k/RLBotGo v0.0.0-20210728111740-687d586163b2 h1:lo2PnK7O4UC8T3kmHaA0DRQnuuGF44wNB8Ap+Wyyq88=
 github.com/Trey2k/RLBotGo v0.0.0-20210728111740-687d586163b2/go.mod h1:gLV280pEfvXl5d8pJ13xGXToM8+IQPBElrhRMiu91KI=
+github.com/Trey2k/RLBotGo v0.0.0-20220104090618-4331269138ce h1:b7Pbio2jbOTNdAPquwRba4p5O3hWM8tIlczx7ksCaT8=
+github.com/Trey2k/RLBotGo v0.0.0-20220104090618-4331269138ce/go.mod h1:gLV280pEfvXl5d8pJ13xGXToM8+IQPBElrhRMiu91KI=
 github.com/chewxy/math32 v1.10.1 h1:LFpeY0SLJXeaiej/eIp2L40VYfscTvKh/FSEZ68uMkU=
 github.com/chewxy/math32 v1.10.1/go.mod h1:dOB2rcuFrCn6UHrze36WSLVPKtzPMRAQvBvUwkSsLqs=
 github.com/google/flatbuffers v2.0.0+incompatible h1:dicJ2oXwypfwUGnB2/TYWYEKiuk9eYQlQO/AnOHl5mI=
 github.com/google/flatbuffers v2.0.0+incompatible/go.mod h1:1AeVuKshWv4vARoZatz6mlQ0JxURH0Kv5+zNeJKJCa8=
-github.com/xonmello/vector3 v1.0.0 h1:5pvDL3HeY0w1diJE3wlHQYdD9zzy85SHl/kifmtD2BM=
-github.com/xonmello/vector3 v1.0.0/go.mod h1:xkJEYZh9Dw9AiDtc9CSsZgXKZ96WvltQ+XuKgxmDnto=
+github.com/google/flatbuffers v2.0.5+incompatible h1:ANsW0idDAXIY+mNHzIHxWRfabV2x5LUEEIIWcwsYgB8=
+github.com/google/flatbuffers v2.0.5+incompatible/go.mod h1:1AeVuKshWv4vARoZatz6mlQ0JxURH0Kv5+zNeJKJCa8=
