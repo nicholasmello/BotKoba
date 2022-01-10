@@ -9,28 +9,36 @@ import (
 	RLBot "github.com/Trey2k/RLBotGo"
 )
 
-func initialSetup(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.BallInfo) (*vector.Vector3, *rotator.Rotator, *vector.Vector3, *rotator.Rotator, *vector.Vector3) {
+var lastjump int64
+
+func initialSetup(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.BallInfo) (*vector.Vector3, *rotator.Rotator, *vector.Vector3, *vector.Vector3, *rotator.Rotator, *vector.Vector3, *vector.Vector3, *vector.Vector3) {
 	// Get self information into a useful format
 	koba_pos := vector.New(koba.Physics.Location.X, koba.Physics.Location.Y, koba.Physics.Location.Z)
 	koba_rot := rotator.New(koba.Physics.Rotation.Pitch, koba.Physics.Rotation.Yaw, koba.Physics.Rotation.Roll)
+	koba_vel := vector.New(koba.Physics.Velocity.X, koba.Physics.Velocity.Y, koba.Physics.Velocity.Z)
 	
 	// Get opponent information into a useful format
 	opponent_pos := vector.New(opponent.Physics.Location.X, opponent.Physics.Location.Y, opponent.Physics.Location.Z)
 	opponent_rot := rotator.New(opponent.Physics.Rotation.Pitch, opponent.Physics.Rotation.Yaw, opponent.Physics.Rotation.Roll)
+	opponent_vel := vector.New(opponent.Physics.Velocity.X, opponent.Physics.Velocity.Y, opponent.Physics.Velocity.Z)
 	
 	// Get ball information into a useful format
 	ball_pos := vector.New(ball.Physics.Location.X, ball.Physics.Location.Y, ball.Physics.Location.Z)
+	ball_vel := vector.New(ball.Physics.Velocity.X, ball.Physics.Velocity.Y, ball.Physics.Velocity.Z)
 
 	// Flips coordinates when on orange team
 	if koba.Team == 1 {
 		koba_pos = koba_pos.MultiplyScalar(-1)
 		koba_rot = koba_rot.RotateYaw(math.Pi)
+		koba_vel = koba_vel.MultiplyScalar(-1)
 		ball_pos = ball_pos.MultiplyScalar(-1)
+		ball_vel = ball_vel.MultiplyScalar(-1)
 		opponent_pos = opponent_pos.MultiplyScalar(-1)
 		opponent_rot = opponent_rot.RotateYaw(math.Pi)
+		opponent_vel = opponent_vel.MultiplyScalar(-1)
 	}
 
-	return koba_pos, koba_rot, opponent_pos, opponent_rot, ball_pos
+	return koba_pos, koba_rot, koba_vel, opponent_pos, opponent_rot, opponent_vel, ball_pos, ball_vel
 }
 
 func steerToward(self_pos *vector.Vector3, self_rot *rotator.Rotator, target *vector.Vector3) float32 {
@@ -57,10 +65,12 @@ func flipToward(self_pos *vector.Vector3, jumped bool, self_rot *rotator.Rotator
 
 	if !jumped {
 		PlayerInput.Jump = true
-		lastjump = time.Now().UnixMilli()
+		lastjump = currentTime()
+	} else if jumped && currentTime() < lastjump + 70 {
+		PlayerInput.Jump = true
 	}
 
-	if jumped && time.Now().UnixMilli() > lastjump + 70 {
+	if jumped && time.Now().UnixMilli() > lastjump + 110 {
 		PlayerInput.Jump = true
 		if math.Abs(localAngle) <= 0.3 {
 			PlayerInput.Pitch = -1

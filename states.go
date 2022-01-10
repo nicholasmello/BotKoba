@@ -1,7 +1,7 @@
 package main
 
 import (
-	// vector "github.com/xonmello/BotKoba/vector3"
+	vector "github.com/xonmello/BotKoba/vector3"
 	// rotator "github.com/xonmello/BotKoba/rotator"
 	math "github.com/chewxy/math32"
 	RLBot "github.com/Trey2k/RLBotGo"
@@ -12,6 +12,8 @@ type State int
 const (
 	ATBA State = iota
 	Kickoff
+	DefensiveCorner
+	OnWall
 )
 
 type StateInfo struct {
@@ -24,7 +26,7 @@ type StateInfo struct {
 func state_ATBA(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.BallInfo) *RLBot.ControllerState {
 	PlayerInput := &RLBot.ControllerState{}
 
-	koba_pos, koba_rot, _, _, ball_pos := initialSetup(koba, opponent, ball)
+	koba_pos, koba_rot, _, _, _, _, ball_pos, _ := initialSetup(koba, opponent, ball)
 
 	// If in air, point wheels down
 	if !koba.HasWheelContact {
@@ -56,7 +58,81 @@ func state_ATBA(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.
 	return PlayerInput
 }
 
-// TO:DO Kickoff
+// Kickoff with 2 flips
 func state_Kickoff(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.BallInfo) *RLBot.ControllerState {
-	return &RLBot.ControllerState{}
+	PlayerInput := &RLBot.ControllerState{}
+
+	koba_pos, koba_rot, koba_vel, _, _, _, ball_pos, _ := initialSetup(koba, opponent, ball)
+
+	// Go toward ball
+	PlayerInput.Steer = steerToward(koba_pos, koba_rot, ball_pos)
+
+	// Starting flip to gain speed
+	if koba_vel.Magnitude() > 1300 {
+		PlayerInput = flipToward(koba_pos, koba.Jumped, koba_rot, ball_pos, PlayerInput)
+	}
+
+	// Flip when close to the ball 
+	if koba_pos.Distance(ball_pos) < 500 && koba_pos.Y < ball_pos.Y {
+		PlayerInput = flipToward(koba_pos, koba.Jumped, koba_rot, ball_pos, PlayerInput)
+	}
+
+	// Go forward and boost
+	if koba.HasWheelContact {
+		PlayerInput.Throttle = 1.0
+		PlayerInput.Boost = true	
+	}
+
+	return PlayerInput
+}
+
+// Getting on the correct side of the ball when in the corner
+func state_DefensiveCorner(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.BallInfo) *RLBot.ControllerState {
+	PlayerInput := &RLBot.ControllerState{}
+
+	koba_pos, koba_rot, _, _, _, _, ball_pos, _ := initialSetup(koba, opponent, ball)
+
+	// If in air, point wheels down
+	if !koba.HasWheelContact {
+		PlayerInput.Roll = -1.0*koba_rot.Roll/math.Pi
+	}
+
+	// Check if on the correct side of the ball
+	if math.Abs(koba_pos.X) < math.Abs(ball_pos.X) && koba_pos.Y < ball_pos.Y {
+		PlayerInput.Steer = steerToward(koba_pos, koba_rot, ball_pos)
+		// Flip when close to the ball 
+		if koba_pos.Distance(ball_pos) < 500 && koba_pos.Y < ball_pos.Y {
+			PlayerInput = flipToward(koba_pos, koba.Jumped, koba_rot, ball_pos, PlayerInput)
+		}
+	} else {
+		PlayerInput.Steer = steerToward(koba_pos, koba_rot, vector.New(0, -4500, 0))
+	}
+
+	// Drift if not very aligned
+	if math.Abs(PlayerInput.Steer) > 0.5 {
+		PlayerInput.Handbrake = true
+	} 
+
+	// Go forward
+	PlayerInput.Throttle = 1.0
+
+	return PlayerInput
+}
+
+// Jump off wall when on it
+func state_OnWall(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.BallInfo) *RLBot.ControllerState {
+	PlayerInput := &RLBot.ControllerState{}
+
+	koba_pos, koba_rot, _, _, _, _, ball_pos, _ := initialSetup(koba, opponent, ball)
+
+	// Jump off wall
+	PlayerInput.Jump = true
+
+	// If in air, point wheels down and turn toward  ball
+	if !koba.HasWheelContact {
+		PlayerInput.Roll = -1.0*koba_rot.Roll/math.Pi
+		PlayerInput.Yaw = steerToward(koba_pos, koba_rot, ball_pos)
+	}
+
+	return PlayerInput
 }

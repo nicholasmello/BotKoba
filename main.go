@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"time"
 
+	math "github.com/chewxy/math32"
 	RLBot "github.com/Trey2k/RLBotGo"
 )
 
-var lastjump int64
-var lastkickoff int64
 var state StateInfo = StateInfo{current: ATBA, start: currentTime(), alloted: 0}
 
 func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerState {
@@ -22,7 +20,22 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 	}
 	ball := gameState.GameTick.Ball
 
-	// TO:DO Determine State if needed
+	// Determine State if needed
+	if currentTime() > state.start + state.alloted {
+		if !gameState.GameTick.GameInfo.IsRoundActive {
+			statePrint("State Changed: Kickoff", Kickoff)
+			state = StateInfo{current: Kickoff, start: currentTime(), alloted: 2000}
+		} else if (math.Abs(koba.Physics.Rotation.Pitch) > math.Pi / 2 - 0.1 || math.Abs(koba.Physics.Rotation.Roll) > math.Pi / 2 - 0.1) && koba.HasWheelContact {
+			statePrint("State Changed: OnWall", OnWall)
+			state = StateInfo{current: OnWall, start: currentTime(), alloted: 200}
+		} else if math.Abs(ball.Physics.Location.X) > 1300 && ball.Physics.Location.Y < -2250 {
+			statePrint("State Changed: Defensive Corner", DefensiveCorner)
+			state = StateInfo{current: DefensiveCorner, start: currentTime(), alloted: 0}
+		} else {
+			statePrint("State Changed: ATBA", ATBA)
+			state = StateInfo{current: ATBA, start: currentTime(), alloted: 0}
+		}
+	}
 
 	// Get Player Input given state
 	var PlayerInput *RLBot.ControllerState
@@ -30,17 +43,24 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 	case ATBA:
 		PlayerInput = state_ATBA(&koba, &opponent, &ball)
 	case Kickoff:
+		// If round is still inactive, reset start time
+		if !gameState.GameTick.GameInfo.IsRoundActive {
+			state.start = currentTime()
+		}
 		PlayerInput = state_Kickoff(&koba, &opponent, &ball)
-	}
-
-	// Boost on kickoff
-	if !gameState.GameTick.GameInfo.IsRoundActive {
-		lastkickoff = time.Now().UnixMilli()
-	} else if time.Now().UnixMilli() < lastkickoff + 2000 {
-		PlayerInput.Boost = true
+	case DefensiveCorner:
+		PlayerInput = state_DefensiveCorner(&koba, &opponent, &ball)
+	case OnWall:
+		PlayerInput = state_OnWall(&koba, &opponent, &ball)
 	}
 
 	return PlayerInput
+}
+
+func statePrint(str string, sta State) {
+	if sta != state.current {
+		fmt.Println(str)
+	}
 }
 
 func main() {
