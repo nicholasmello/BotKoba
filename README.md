@@ -5,7 +5,7 @@ Rocket League Bot designed to face Koba in Rocket League. Currently the bot only
 
 ## Create your own
 
-If you are looking to create your own bot using Go take a look at [Trey2K](https://github.com/Trey2k)/[https://github.com/Trey2k/RLBotGo/](RLBotGo) for the Go specific framework as well as my Always Toward Ball Agent ([ATBA](https://github.com/xonmello/RLBotGoATBA)) bot for the basic on movement. 
+If you are looking to create your own bot using Go take a look at [Trey2K](https://github.com/Trey2k)/[RLBotGo](https://github.com/Trey2k/RLBotGo/) for the Go specific framework as well as my Always Toward Ball Agent ([ATBA](https://github.com/xonmello/RLBotGoATBA)) bot for the basics on movement. 
 
 In addition to Go, many other languages have framework for RLBot. Choose one on the [RLBot website](http://rlbot.org/) or join the [RLBot Discord server](https://discord.gg/zbaAKPt).
 
