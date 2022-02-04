@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	math "github.com/chewxy/math32"
 	RLBot "github.com/Trey2k/RLBotGo"
+	math "github.com/chewxy/math32"
 )
 
-var state StateInfo = StateInfo{current: ATBA, start: currentTime(), alloted: 0}
+var state = StateInfo{current: ATBA, start: currentTime(), allotted: 0}
 
 func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerState {
 	// Get Players and Ball data
@@ -21,19 +21,25 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 	ball := gameState.GameTick.Ball
 
 	// Determine State if needed
-	if currentTime() > state.start + state.alloted {
+	if currentTime() > state.start+state.allotted {
 		if !gameState.GameTick.GameInfo.IsRoundActive {
 			statePrint("State Changed: Kickoff", Kickoff)
-			state = StateInfo{current: Kickoff, start: currentTime(), alloted: 2000}
-		} else if (math.Abs(koba.Physics.Rotation.Pitch) > math.Pi / 2 - 0.1 || math.Abs(koba.Physics.Rotation.Roll) > math.Pi / 2 - 0.1) && koba.HasWheelContact {
+			state = StateInfo{current: Kickoff, start: currentTime(), allotted: 2000}
+		} else if (math.Abs(koba.Physics.Rotation.Pitch) > math.Pi/2-0.1 || math.Abs(koba.Physics.Rotation.Roll) > math.Pi/2-0.1) && koba.HasWheelContact {
 			statePrint("State Changed: OnWall", OnWall)
-			state = StateInfo{current: OnWall, start: currentTime(), alloted: 200}
+			state = StateInfo{current: OnWall, start: currentTime(), allotted: 200}
 		} else if math.Abs(ball.Physics.Location.X) > 1300 && ball.Physics.Location.Y < -2250 {
 			statePrint("State Changed: Defensive Corner", DefensiveCorner)
-			state = StateInfo{current: DefensiveCorner, start: currentTime(), alloted: 0}
+			state = StateInfo{current: DefensiveCorner, start: currentTime(), allotted: 0}
+		} else if ball.Physics.Location.Z > 800 {
+			statePrint("State Changed: Air", Air)
+			state = StateInfo{current: Air, start: currentTime(), allotted: 0}
+		} else if math.Abs(ball.Physics.Location.X) > 2000 && ball.Physics.Location.Y > 2250 {
+			statePrint("State Changed: Offensive Corner", OffensiveCorner)
+			state = StateInfo{current: OffensiveCorner, start: currentTime(), allotted: 0}
 		} else {
 			statePrint("State Changed: ATBA", ATBA)
-			state = StateInfo{current: ATBA, start: currentTime(), alloted: 0}
+			state = StateInfo{current: ATBA, start: currentTime(), allotted: 0}
 		}
 	}
 
@@ -41,17 +47,21 @@ func getInput(gameState *RLBot.GameState, rlBot *RLBot.RLBot) *RLBot.ControllerS
 	var PlayerInput *RLBot.ControllerState
 	switch state.current {
 	case ATBA:
-		PlayerInput = state_ATBA(&koba, &opponent, &ball)
+		PlayerInput = stateATBA(&koba, &opponent, &ball, gameState.BallPrediction)
 	case Kickoff:
 		// If round is still inactive, reset start time
 		if !gameState.GameTick.GameInfo.IsRoundActive {
 			state.start = currentTime()
 		}
-		PlayerInput = state_Kickoff(&koba, &opponent, &ball)
+		PlayerInput = stateKickoff(&koba, &opponent, &ball)
 	case DefensiveCorner:
-		PlayerInput = state_DefensiveCorner(&koba, &opponent, &ball)
+		PlayerInput = stateDefensiveCorner(&koba, &opponent, &ball)
+	case Air:
+		PlayerInput = stateAir(&koba, &opponent, &ball, gameState.BallPrediction)
+	case OffensiveCorner:
+		PlayerInput = stateOffensiveCorner(&koba, &opponent, &ball)
 	case OnWall:
-		PlayerInput = state_OnWall(&koba, &opponent, &ball)
+		PlayerInput = stateOnWall(&koba, &opponent, &ball)
 	}
 
 	return PlayerInput
