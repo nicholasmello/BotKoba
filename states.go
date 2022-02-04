@@ -44,8 +44,14 @@ func stateATBA(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.B
 	}
 
 	// If on the wrong side of the ball, go back
-	if kobaPos.Y > ballPos.Y+400 {
-		PlayerInput.Steer = -1 * (math.Pi/2 + kobaRot.Yaw)
+	goal := vector.New(0, 3000, 0)
+	if correctSide(kobaPos, ballPos, goal) {
+		predictionPosition := ballPrediction.Slices[4].Physics.Location
+		predictionPositionVector := vector.New(predictionPosition.X, predictionPosition.Y, predictionPosition.Z)
+		if predictionPositionVector.Magnitude() == 0 {
+			predictionPositionVector = ballPos
+		}
+		PlayerInput.Steer = steerToward(kobaPos, kobaRot, predictionPositionVector)
 		PlayerInput.Boost = true
 	} else if opponentPos.Distance(ballPos) > kobaPos.Distance(ballPos) {
 		PlayerInput.Boost = true
@@ -53,9 +59,8 @@ func stateATBA(koba *RLBot.PlayerInfo, opponent *RLBot.PlayerInfo, ball *RLBot.B
 
 	// Flip if close to the ball
 	if kobaPos.Distance(ballPos) < 400 && kobaPos.Y < ballPos.Y {
-		predictionPosition := ballPrediction.Slices[5].Physics.Location
-		predictionPositionVector := vector.New(predictionPosition.X, predictionPosition.Y, predictionPosition.Z)
-		PlayerInput = flipToward(kobaPos, koba.Jumped, kobaRot, predictionPositionVector, PlayerInput)
+		PlayerInput.Steer = steerToward(kobaPos, kobaRot, ballPos)
+		PlayerInput = flipToward(kobaPos, koba.Jumped, kobaRot, ballPos, PlayerInput)
 	}
 
 	// Go forward

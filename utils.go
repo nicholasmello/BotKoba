@@ -118,3 +118,10 @@ func lowestPrediction(ballPrediction *RLBot.BallPrediction) *vector.Vector3 {
 	physicsSlice := ballPrediction.Slices[targetIndex].Physics.Location
 	return vector.New(physicsSlice.X, physicsSlice.Y, physicsSlice.Z)
 }
+
+func correctSide(self *vector.Vector3, center *vector.Vector3, opposing *vector.Vector3) bool {
+	directionalVector := center.Subtract(opposing)
+	borderLine := directionalVector
+	borderLine.Y = borderLine.Y * -1
+	return ((borderLine.X-center.X)*(self.Y-center.Y) - (borderLine.Y-center.Y)*(self.X-center.X)) > 0
+}
